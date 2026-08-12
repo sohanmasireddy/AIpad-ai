@@ -73,7 +73,7 @@ def ask(prompt):
 
 def run_ai(prompt, action):
     try:
-        with st.spinner("🤖 AI is working..."):
+        with st.spinner("🏭 AI is working..."):
             result = ask(prompt)
 
         if not result:
@@ -119,7 +119,7 @@ if st.session_state.page == "home":
     )
 
     if st.button(
-        "🚀 Open AIpad",
+        "🚀 Launch AIpad",
         use_container_width=True
     ):
         st.session_state.page = "main"
@@ -223,7 +223,7 @@ with col1:
 with col2:
 
     if st.button(
-        "🤖 Generate",
+        "🏭 Generate",
         use_container_width=True
     ):
 
