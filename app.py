@@ -172,7 +172,7 @@ if st.session_state.page == "error":
 # MAIN PAGE
 # ============================================================
 
-st.title("📝 AIpad")
+st.title("AIpad")
 st.write("Write Here")
 
 
@@ -269,7 +269,7 @@ if st.session_state.panel == "generate":
 
     st.divider()
 
-    st.subheader("🤖 Generate")
+    st.subheader("🏭 Generate")
 
     prompt = st.text_input(
         "What should AI generate?",
