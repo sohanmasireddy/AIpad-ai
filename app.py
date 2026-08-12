@@ -120,7 +120,6 @@ controls, editor = st.columns(
 
 with controls:
     st.subheader("📝 AIpad")
-    st.divider()
 
     # ========================================================
     # AI FIX
