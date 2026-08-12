@@ -1,7 +1,6 @@
 import streamlit as st
 from ollama import Client
 
-
 # ============================================================
 # PAGE SETUP
 # ============================================================
@@ -12,13 +11,11 @@ st.set_page_config(
     layout="wide",
 )
 
-
 # ============================================================
 # CONFIG
 # ============================================================
 
 MODEL = "gpt-oss:20b-cloud"
-
 
 # ============================================================
 # SESSION STATE
@@ -37,7 +34,6 @@ for key, value in defaults.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
-
 # ============================================================
 # OLLAMA
 # ============================================================
@@ -48,9 +44,10 @@ if "ollama_api_key" not in st.secrets:
 
 OLLAMA_API_KEY = st.secrets["ollama_api_key"]
 
-
 @st.cache_resource
 def get_ai_client(api_key):
+    # Note: Standard local Ollama runs on http://localhost:11434 without auth.
+    # Keep this as-is if you are using a custom cloud-hosted Ollama endpoint.
     return Client(
         host="https://ollama.com",
         headers={
@@ -58,16 +55,13 @@ def get_ai_client(api_key):
         },
     )
 
-
 ai = get_ai_client(OLLAMA_API_KEY)
-
 
 # ============================================================
 # AI
 # ============================================================
 
 def ask_ai(prompt):
-
     response = ai.chat(
         model=MODEL,
         messages=[
@@ -78,50 +72,29 @@ def ask_ai(prompt):
         ],
         stream=True,
     )
-
+    
     result = ""
-
     for chunk in response:
-
-        content = (
-            chunk
-            .get("message", {})
-            .get("content", "")
-        )
-
+        content = chunk.get("message", {}).get("content", "")
         if content:
             result += content
-
+            
     return result
 
-
 def run_ai(prompt, action):
-
     try:
-
         with st.spinner("🏭 AI is working..."):
-
             result = ask_ai(prompt)
 
         if not result.strip():
-            raise RuntimeError(
-                "The AI returned an empty response."
-            )
+            raise RuntimeError("The AI returned an empty response.")
 
         if action == "generate":
-
             if st.session_state.note.strip():
-
-                st.session_state.note += (
-                    "\n\n" + result
-                )
-
+                st.session_state.note += "\n\n" + result
             else:
-
                 st.session_state.note = result
-
         else:
-
             st.session_state.note = result
 
         st.session_state.panel = None
@@ -131,14 +104,8 @@ def run_ai(prompt, action):
         st.rerun()
 
     except Exception as error:
-
         st.session_state.error = str(error)
-
-        st.session_state.retry = (
-            prompt,
-            action,
-        )
-
+        st.session_state.retry = (prompt, action)
 
 # ============================================================
 # LAYOUT
@@ -149,36 +116,23 @@ controls, editor = st.columns(
     gap="large",
 )
 
-
 # ============================================================
 # CONTROLS
 # ============================================================
 
 with controls:
-
     # Small title
     st.subheader("📝 AIpad")
-
     st.divider()
-
 
     # ========================================================
     # AI FIX
     # ========================================================
-
-    if st.button(
-        "✨ AI Fix",
-        use_container_width=True,
-    ):
-
+    if st.button("✨ AI Fix", use_container_width=True):
         note = st.session_state.note.strip()
-
         if not note:
-
             st.warning("Write something first.")
-
         else:
-
             run_ai(
                 (
                     "Fix the following text or code. "
@@ -190,84 +144,47 @@ with controls:
                 "fix",
             )
 
-
     # ========================================================
     # GENERATE
     # ========================================================
-
-    if st.button(
-        "🏭 Generate",
-        use_container_width=True,
-    ):
-
+    if st.button("🏭 Generate", use_container_width=True):
         st.session_state.panel = "generate"
-
 
     # ========================================================
     # REWRITE
     # ========================================================
-
-    if st.button(
-        "🔄 Rewrite",
-        use_container_width=True,
-    ):
-
+    if st.button("🔄 Rewrite", use_container_width=True):
         if st.session_state.note.strip():
-
             st.session_state.panel = "rewrite"
-
         else:
-
             st.warning("Write something first.")
-
 
     # ========================================================
     # CLEAR
     # ========================================================
-
-    if st.button(
-        "🗑️ Clear",
-        use_container_width=True,
-    ):
-
+    if st.button("🗑️ Clear", use_container_width=True):
         st.session_state.note = ""
         st.session_state.panel = None
-
 
     # ========================================================
     # GENERATE INPUT
     # ========================================================
-
     if st.session_state.panel == "generate":
-
         st.divider()
-
         st.caption("🏭 Generate")
-
+        
         st.text_input(
             "Generate prompt",
             placeholder="What should I create?",
             key="generate_prompt",
             label_visibility="collapsed",
         )
-
-        if st.button(
-            "✨ Run Generate",
-            use_container_width=True,
-            type="primary",
-        ):
-
-            prompt = (
-                st.session_state.generate_prompt
-                .strip()
-            )
-
+        
+        if st.button("✨ Run Generate", use_container_width=True, type="primary"):
+            prompt = st.session_state.generate_prompt.strip()
             if not prompt:
-
                 st.warning("Enter a prompt first.")
-
             else:
-
                 run_ai(
                     (
                         "Generate the following. "
@@ -277,56 +194,34 @@ with controls:
                     ),
                     "generate",
                 )
-
-        if st.button(
-            "Cancel",
-            use_container_width=True,
-        ):
-
+                
+        if st.button("Cancel", use_container_width=True):
             st.session_state.panel = None
             st.rerun()
-
 
     # ========================================================
     # REWRITE INPUT
     # ========================================================
-
     if st.session_state.panel == "rewrite":
-
         st.divider()
-
         st.caption("🔄 Rewrite")
-
+        
         st.text_input(
             "Rewrite instructions",
             placeholder="Make it shorter...",
             key="rewrite_prompt",
             label_visibility="collapsed",
         )
-
-        if st.button(
-            "🔄 Apply Rewrite",
-            use_container_width=True,
-            type="primary",
-        ):
-
+        
+        if st.button("🔄 Apply Rewrite", use_container_width=True, type="primary"):
             note = st.session_state.note.strip()
-            instructions = (
-                st.session_state.rewrite_prompt.strip()
-            )
-
+            instructions = st.session_state.rewrite_prompt.strip()
+            
             if not note:
-
                 st.warning("Write something first.")
-
             elif not instructions:
-
-                st.warning(
-                    "Tell AI how to rewrite it."
-                )
-
+                st.warning("Tell AI how to rewrite it.")
             else:
-
                 run_ai(
                     (
                         instructions
@@ -335,57 +230,35 @@ with controls:
                     ),
                     "rewrite",
                 )
-
-        if st.button(
-            "Cancel",
-            use_container_width=True,
-        ):
-
+                
+        if st.button("Cancel", use_container_width=True):
             st.session_state.panel = None
             st.rerun()
-
 
     # ========================================================
     # ERROR
     # ========================================================
-
     if st.session_state.error:
-
         st.divider()
-
         st.error("AI request failed.")
-
+        
         with st.expander("Details"):
             st.code(st.session_state.error)
-
+            
         if st.session_state.retry:
-
-            if st.button(
-                "🔄 Retry",
-                use_container_width=True,
-            ):
-
-                prompt, action = (
-                    st.session_state.retry
-                )
-
+            if st.button("🔄 Retry", use_container_width=True):
+                prompt, action = st.session_state.retry
                 st.session_state.error = None
-
-                run_ai(
-                    prompt,
-                    action,
-                )
-
+                run_ai(prompt, action)
 
 # ============================================================
 # EDITOR
 # ============================================================
 
 with editor:
-
     st.text_area(
         "Your note",
-        height=260,
+        height=320,  # Increased height for a better notepad experience
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
