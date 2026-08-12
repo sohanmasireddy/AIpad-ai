@@ -39,28 +39,18 @@ for key, value in defaults.items():
 
 
 # ============================================================
-# OLLAMA API KEY
+# OLLAMA
 # ============================================================
 
 if "ollama_api_key" not in st.secrets:
-
-    st.error(
-        "`ollama_api_key` was not found in Streamlit secrets."
-    )
-
+    st.error("`ollama_api_key` was not found in Streamlit secrets.")
     st.stop()
-
 
 OLLAMA_API_KEY = st.secrets["ollama_api_key"]
 
 
-# ============================================================
-# OLLAMA CLIENT
-# ============================================================
-
 @st.cache_resource
 def get_ai_client(api_key):
-
     return Client(
         host="https://ollama.com",
         headers={
@@ -73,7 +63,7 @@ ai = get_ai_client(OLLAMA_API_KEY)
 
 
 # ============================================================
-# AI REQUEST
+# AI
 # ============================================================
 
 def ask_ai(prompt):
@@ -105,10 +95,6 @@ def ask_ai(prompt):
     return result
 
 
-# ============================================================
-# RUN AI
-# ============================================================
-
 def run_ai(prompt, action):
 
     try:
@@ -118,15 +104,9 @@ def run_ai(prompt, action):
             result = ask_ai(prompt)
 
         if not result.strip():
-
             raise RuntimeError(
                 "The AI returned an empty response."
             )
-
-
-        # ----------------------------------------------------
-        # GENERATE
-        # ----------------------------------------------------
 
         if action == "generate":
 
@@ -140,29 +120,15 @@ def run_ai(prompt, action):
 
                 st.session_state.note = result
 
-
-        # ----------------------------------------------------
-        # FIX / REWRITE
-        # ----------------------------------------------------
-
         else:
 
             st.session_state.note = result
-
-
-        # ----------------------------------------------------
-        # RESET
-        # ----------------------------------------------------
 
         st.session_state.panel = None
         st.session_state.error = None
         st.session_state.retry = None
 
-        st.session_state.generate_prompt = ""
-        st.session_state.rewrite_prompt = ""
-
         st.rerun()
-
 
     except Exception as error:
 
@@ -175,48 +141,7 @@ def run_ai(prompt, action):
 
 
 # ============================================================
-# PANEL CALLBACKS
-# ============================================================
-
-def open_generate():
-
-    st.session_state.panel = "generate"
-
-
-def cancel_generate():
-
-    st.session_state.panel = None
-    st.session_state.generate_prompt = ""
-
-
-def open_rewrite():
-
-    if st.session_state.note.strip():
-
-        st.session_state.panel = "rewrite"
-
-    else:
-
-        st.session_state.error = None
-
-
-def cancel_rewrite():
-
-    st.session_state.panel = None
-    st.session_state.rewrite_prompt = ""
-
-
-def clear_note():
-
-    st.session_state.note = ""
-    st.session_state.panel = None
-    st.session_state.error = None
-    st.session_state.generate_prompt = ""
-    st.session_state.rewrite_prompt = ""
-
-
-# ============================================================
-# MAIN LAYOUT
+# LAYOUT
 # ============================================================
 
 controls, editor = st.columns(
@@ -226,15 +151,12 @@ controls, editor = st.columns(
 
 
 # ============================================================
-# LEFT CONTROL AREA
+# CONTROLS
 # ============================================================
 
 with controls:
 
-    # --------------------------------------------------------
-    # SMALL TITLE
-    # --------------------------------------------------------
-
+    # Small title
     st.subheader("📝 AIpad")
 
     st.divider()
@@ -253,9 +175,7 @@ with controls:
 
         if not note:
 
-            st.warning(
-                "Write something first."
-            )
+            st.warning("Write something first.")
 
         else:
 
@@ -275,11 +195,12 @@ with controls:
     # GENERATE
     # ========================================================
 
-    st.button(
+    if st.button(
         "🏭 Generate",
         use_container_width=True,
-        on_click=open_generate,
-    )
+    ):
+
+        st.session_state.panel = "generate"
 
 
     # ========================================================
@@ -297,20 +218,131 @@ with controls:
 
         else:
 
-            st.warning(
-                "Write something first."
-            )
+            st.warning("Write something first.")
 
 
     # ========================================================
     # CLEAR
     # ========================================================
 
-    st.button(
+    if st.button(
         "🗑️ Clear",
         use_container_width=True,
-        on_click=clear_note,
-    )
+    ):
+
+        st.session_state.note = ""
+        st.session_state.panel = None
+
+
+    # ========================================================
+    # GENERATE INPUT
+    # ========================================================
+
+    if st.session_state.panel == "generate":
+
+        st.divider()
+
+        st.caption("🏭 Generate")
+
+        st.text_input(
+            "Generate prompt",
+            placeholder="What should I create?",
+            key="generate_prompt",
+            label_visibility="collapsed",
+        )
+
+        if st.button(
+            "✨ Run Generate",
+            use_container_width=True,
+            type="primary",
+        ):
+
+            prompt = (
+                st.session_state.generate_prompt
+                .strip()
+            )
+
+            if not prompt:
+
+                st.warning("Enter a prompt first.")
+
+            else:
+
+                run_ai(
+                    (
+                        "Generate the following. "
+                        "Return ONLY the requested "
+                        "text or code.\n\n"
+                        + prompt
+                    ),
+                    "generate",
+                )
+
+        if st.button(
+            "Cancel",
+            use_container_width=True,
+        ):
+
+            st.session_state.panel = None
+            st.rerun()
+
+
+    # ========================================================
+    # REWRITE INPUT
+    # ========================================================
+
+    if st.session_state.panel == "rewrite":
+
+        st.divider()
+
+        st.caption("🔄 Rewrite")
+
+        st.text_input(
+            "Rewrite instructions",
+            placeholder="Make it shorter...",
+            key="rewrite_prompt",
+            label_visibility="collapsed",
+        )
+
+        if st.button(
+            "🔄 Apply Rewrite",
+            use_container_width=True,
+            type="primary",
+        ):
+
+            note = st.session_state.note.strip()
+            instructions = (
+                st.session_state.rewrite_prompt.strip()
+            )
+
+            if not note:
+
+                st.warning("Write something first.")
+
+            elif not instructions:
+
+                st.warning(
+                    "Tell AI how to rewrite it."
+                )
+
+            else:
+
+                run_ai(
+                    (
+                        instructions
+                        + "\n\nRewrite this:\n\n"
+                        + note
+                    ),
+                    "rewrite",
+                )
+
+        if st.button(
+            "Cancel",
+            use_container_width=True,
+        ):
+
+            st.session_state.panel = None
+            st.rerun()
 
 
     # ========================================================
@@ -321,16 +353,10 @@ with controls:
 
         st.divider()
 
-        st.error(
-            "AI request failed."
-        )
+        st.error("AI request failed.")
 
         with st.expander("Details"):
-
-            st.code(
-                st.session_state.error
-            )
-
+            st.code(st.session_state.error)
 
         if st.session_state.retry:
 
@@ -352,148 +378,14 @@ with controls:
 
 
 # ============================================================
-# RIGHT EDITOR
+# EDITOR
 # ============================================================
 
 with editor:
 
-    # ========================================================
-    # GENERATE PANEL
-    # ========================================================
-
-    if st.session_state.panel == "generate":
-
-        st.text_input(
-            "Generate prompt",
-            placeholder="What do you want to create?",
-            key="generate_prompt",
-            label_visibility="collapsed",
-        )
-
-
-        if st.button(
-            "✨ Generate",
-            use_container_width=True,
-            type="primary",
-        ):
-
-            prompt = (
-                st.session_state.generate_prompt
-                .strip()
-            )
-
-            if not prompt:
-
-                st.warning(
-                    "Enter something to create."
-                )
-
-            else:
-
-                run_ai(
-                    (
-                        "Generate the following. "
-                        "Return ONLY the requested "
-                        "text or code.\n\n"
-                        + prompt
-                    ),
-                    "generate",
-                )
-
-
-        st.button(
-            "Cancel",
-            use_container_width=True,
-            on_click=cancel_generate,
-        )
-
-
-        # Smaller editor
-        editor_height = 480
-
-
-    # ========================================================
-    # REWRITE PANEL
-    # ========================================================
-
-    elif st.session_state.panel == "rewrite":
-
-        st.text_input(
-            "Rewrite prompt",
-            placeholder="How do you want to rewrite it?",
-            key="rewrite_prompt",
-            label_visibility="collapsed",
-        )
-
-
-        if st.button(
-            "🔄 Apply Rewrite",
-            use_container_width=True,
-            type="primary",
-        ):
-
-            note = (
-                st.session_state.note
-                .strip()
-            )
-
-            instructions = (
-                st.session_state.rewrite_prompt
-                .strip()
-            )
-
-
-            if not note:
-
-                st.warning(
-                    "Write something first."
-                )
-
-            elif not instructions:
-
-                st.warning(
-                    "Tell AI how to rewrite it."
-                )
-
-            else:
-
-                run_ai(
-                    (
-                        instructions
-                        + "\n\nRewrite this:\n\n"
-                        + note
-                    ),
-                    "rewrite",
-                )
-
-
-        st.button(
-            "Cancel",
-            use_container_width=True,
-            on_click=cancel_rewrite,
-        )
-
-
-        # Smaller editor
-        editor_height = 160
-
-
-    # ========================================================
-    # NORMAL EDITOR
-    # ========================================================
-
-    else:
-
-        editor_height = 260
-
-
-    # ========================================================
-    # MAIN TEXT AREA
-    # ========================================================
-
     st.text_area(
         "Your note",
-        height=editor_height,
+        height=260,
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
