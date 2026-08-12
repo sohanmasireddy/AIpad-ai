@@ -17,7 +17,7 @@ st.set_page_config(
 
 MODEL_OPTIONS = {
     "Nvidia Nemotron 3 Nano": "nemotron-3-nano:30b-cloud",
-    "ChatGPT-OSS 20B": "gpt-oss:20b-cloud",
+    "ChatGPT-OSS": "gpt-oss:20b-cloud",
     "Google Gemma 4": "gemma4:31b-cloud",
 }
 DEFAULT_MODEL_LABEL = "Nvidia Nemotron 3 Nano"
