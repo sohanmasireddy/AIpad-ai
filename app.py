@@ -26,8 +26,8 @@ defaults = {
     "panel": None,
     "error": None,
     "retry": None,
-    "rewrite_prompt": "",
     "trigger_generate": None,
+    "trigger_rewrite": None,
 }
 
 for key, value in defaults.items():
@@ -70,13 +70,13 @@ def ask_ai(prompt):
         ],
         stream=True,
     )
-    
+
     result = ""
     for chunk in response:
         content = chunk.get("message", {}).get("content", "")
         if content:
             result += content
-            
+
     return result
 
 def run_ai(prompt, action):
@@ -139,7 +139,10 @@ with controls:
                 ),
                 "fix",
             )
-    
+
+    # ========================================================
+    # GENERATE
+    # ========================================================
     def handle_generate():
         prompt = st.session_state.generate_input_box.strip()
         if prompt:
@@ -151,7 +154,7 @@ with controls:
         placeholder="Generate...",
         key="generate_input_box",
         label_visibility="collapsed",
-        on_change=handle_generate
+        on_change=handle_generate,
     )
 
     if st.session_state.trigger_generate:
@@ -170,11 +173,36 @@ with controls:
     # ========================================================
     # REWRITE
     # ========================================================
-    if st.button("🔄 Rewrite", use_container_width=True):
-        if st.session_state.note.strip():
-            st.session_state.panel = "rewrite"
-        else:
+    def handle_rewrite():
+        prompt = st.session_state.rewrite_input_box.strip()
+        if prompt:
+            st.session_state.trigger_rewrite = prompt
+        st.session_state.rewrite_input_box = ""
+
+    st.text_input(
+        "Rewrite",
+        placeholder="Rewrite...",
+        key="rewrite_input_box",
+        label_visibility="collapsed",
+        on_change=handle_rewrite,
+    )
+
+    if st.session_state.trigger_rewrite:
+        instructions = st.session_state.trigger_rewrite
+        st.session_state.trigger_rewrite = None  # Reset flag immediately
+        note = st.session_state.note.strip()
+
+        if not note:
             st.warning("Write something first.")
+        else:
+            run_ai(
+                (
+                    instructions
+                    + "\n\nRewrite this:\n\n"
+                    + note
+                ),
+                "rewrite",
+            )
 
     # ========================================================
     # CLEAR
@@ -184,51 +212,15 @@ with controls:
         st.session_state.panel = None
 
     # ========================================================
-    # REWRITE INPUT PANEL (Appears at bottom of sidebar)
-    # ========================================================
-    if st.session_state.panel == "rewrite":
-        st.divider()
-        st.caption("🔄 Rewrite")
-        
-        st.text_input(
-            "Rewrite instructions",
-            placeholder="Make it shorter...",
-            key="rewrite_prompt",
-            label_visibility="collapsed",
-        )
-        
-        if st.button("🔄 Apply Rewrite", use_container_width=True, type="primary"):
-            note = st.session_state.note.strip()
-            instructions = st.session_state.rewrite_prompt.strip()
-            
-            if not note:
-                st.warning("Write something first.")
-            elif not instructions:
-                st.warning("Tell AI how to rewrite it.")
-            else:
-                run_ai(
-                    (
-                        instructions
-                        + "\n\nRewrite this:\n\n"
-                        + note
-                    ),
-                    "rewrite",
-                )
-                
-        if st.button("Cancel", use_container_width=True):
-            st.session_state.panel = None
-            st.rerun()
-
-    # ========================================================
     # ERROR PANEL
     # ========================================================
     if st.session_state.error:
         st.divider()
         st.error("AI request failed.")
-        
+
         with st.expander("Details"):
             st.code(st.session_state.error)
-            
+
         if st.session_state.retry:
             if st.button("🔄 Retry", use_container_width=True):
                 prompt, action = st.session_state.retry
