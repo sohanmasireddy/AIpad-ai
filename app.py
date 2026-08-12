@@ -25,7 +25,6 @@ MODEL = "gpt-oss:20b-cloud"
 # ============================================================
 
 DEFAULTS = {
-    "page": "home",
     "note": "",
     "panel": None,
     "error": None,
@@ -38,7 +37,7 @@ for key, value in DEFAULTS.items():
 
 
 # ============================================================
-# OLLAMA
+# OLLAMA CLIENT
 # ============================================================
 
 if "ollama_api_key" not in st.secrets:
@@ -62,7 +61,7 @@ ai = get_ai_client(OLLAMA_API_KEY)
 
 
 # ============================================================
-# AI
+# AI FUNCTION
 # ============================================================
 
 def ask_ai(prompt):
@@ -96,6 +95,10 @@ def ask_ai(prompt):
     return result
 
 
+# ============================================================
+# RUN AI
+# ============================================================
+
 def run_ai(prompt, action):
 
     try:
@@ -109,15 +112,20 @@ def run_ai(prompt, action):
                 "The AI returned an empty response."
             )
 
+        # Generate adds to the note.
         if action == "generate":
 
             if st.session_state.note.strip():
+
                 st.session_state.note += (
                     "\n\n" + result
                 )
+
             else:
+
                 st.session_state.note = result
 
+        # Fix and Rewrite replace the note.
         else:
 
             st.session_state.note = result
@@ -131,125 +139,70 @@ def run_ai(prompt, action):
     except Exception as error:
 
         st.session_state.error = str(error)
+
         st.session_state.retry = (
             prompt,
             action,
         )
-        st.session_state.page = "error"
-
-        st.rerun()
 
 
 # ============================================================
-# HOME
+# CUSTOM CSS
 # ============================================================
 
-if st.session_state.page == "home":
+st.markdown(
+    """
+    <style>
 
-    st.markdown(
-        """
-        <style>
-        .home-title {
-            text-align: center;
-            font-size: 60px;
-            font-weight: 700;
-            margin-top: 20vh;
-        }
+    /* Main page */
 
-        .home-subtitle {
-            text-align: center;
-            color: #888;
-            font-size: 18px;
-            margin-bottom: 30px;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        '<div class="home-title">📝 AIpad</div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        '<div class="home-subtitle">Your AI-powered notepad</div>',
-        unsafe_allow_html=True,
-    )
-
-    col1, col2, col3 = st.columns([1, 2, 1])
-
-    with col2:
-
-        if st.button(
-            "🚀 Launch",
-            use_container_width=True,
-            type="primary",
-        ):
-
-            st.session_state.page = "main"
-            st.rerun()
-
-    st.stop()
+    .main-title {
+        text-align: center;
+        font-size: 42px;
+        font-weight: 700;
+        margin-top: 10px;
+        margin-bottom: 30px;
+    }
 
 
-# ============================================================
-# ERROR PAGE
-# ============================================================
+    /* Sidebar */
 
-if st.session_state.page == "error":
+    section[data-testid="stSidebar"] {
+        min-width: 230px;
+        max-width: 230px;
+    }
 
-    st.title("⚠️ Something went wrong")
 
-    st.error(
-        "AIpad couldn't complete that request."
-    )
+    /* Sidebar title */
 
-    with st.expander("Show error details"):
+    .sidebar-title {
+        text-align: center;
+        font-size: 25px;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
 
-        st.code(
-            st.session_state.error
-            or "Unknown error"
-        )
 
-    col1, col2 = st.columns(2)
+    /* Editor */
 
-    with col1:
+    div[data-testid="stTextArea"] textarea {
+        font-size: 17px;
+        line-height: 1.6;
+        padding: 18px;
+        border-radius: 10px;
+    }
 
-        if st.button(
-            "🔄 Retry",
-            use_container_width=True,
-            type="primary",
-        ):
 
-            if st.session_state.retry:
+    /* Remove text area label spacing */
 
-                prompt, action = (
-                    st.session_state.retry
-                )
+    div[data-testid="stTextArea"] {
+        margin-bottom: 20px;
+    }
 
-                st.session_state.page = "main"
-
-                run_ai(
-                    prompt,
-                    action,
-                )
-
-    with col2:
-
-        if st.button(
-            "🏠 Home",
-            use_container_width=True,
-        ):
-
-            st.session_state.page = "home"
-            st.session_state.panel = None
-            st.session_state.error = None
-            st.session_state.retry = None
-
-            st.rerun()
-
-    st.stop()
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ============================================================
@@ -259,19 +212,16 @@ if st.session_state.page == "error":
 with st.sidebar:
 
     st.markdown(
-        """
-        <h1 style="text-align:center;">
-            📝 AIpad
-        </h1>
-        """,
+        '<div class="sidebar-title">📝 AIpad</div>',
         unsafe_allow_html=True,
     )
 
     st.divider()
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # AI FIX
-    # --------------------------------------------------------
+    # ========================================================
 
     if st.button(
         "✨ AI Fix",
@@ -282,7 +232,9 @@ with st.sidebar:
 
         if not note:
 
-            st.warning("Write something first.")
+            st.warning(
+                "Write something first."
+            )
 
         else:
 
@@ -297,13 +249,247 @@ with st.sidebar:
                 "fix",
             )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # GENERATE
-    # --------------------------------------------------------
+    # ========================================================
 
     if st.button(
         "🏭 Generate",
         use_container_width=True,
     ):
 
-        st.session_state.panel
+        st.session_state.panel = "generate"
+
+
+    # ========================================================
+    # REWRITE
+    # ========================================================
+
+    if st.button(
+        "🔄 Rewrite",
+        use_container_width=True,
+    ):
+
+        if st.session_state.note.strip():
+
+            st.session_state.panel = "rewrite"
+
+        else:
+
+            st.warning(
+                "Write something first."
+            )
+
+
+    # ========================================================
+    # CLEAR
+    # ========================================================
+
+    if st.button(
+        "🗑️ Clear",
+        use_container_width=True,
+    ):
+
+        st.session_state.note = ""
+        st.session_state.panel = None
+        st.session_state.error = None
+
+
+    st.divider()
+
+
+    # ========================================================
+    # ERROR
+    # ========================================================
+
+    if st.session_state.error:
+
+        st.error(
+            "AI request failed."
+        )
+
+        with st.expander("Details"):
+
+            st.code(
+                st.session_state.error
+            )
+
+        if st.button(
+            "🔄 Retry",
+            use_container_width=True,
+        ):
+
+            if st.session_state.retry:
+
+                prompt, action = (
+                    st.session_state.retry
+                )
+
+                st.session_state.error = None
+
+                run_ai(
+                    prompt,
+                    action,
+                )
+
+
+# ============================================================
+# MAIN TITLE
+# ============================================================
+
+st.markdown(
+    '<div class="main-title">📝 AIpad</div>',
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# MAIN TEXT EDITOR
+# ============================================================
+
+st.text_area(
+    "Your note",
+    height=550,
+    placeholder=(
+        "Start writing here..."
+    ),
+    key="note",
+)
+
+
+# ============================================================
+# GENERATE PANEL
+# ============================================================
+
+if st.session_state.panel == "generate":
+
+    st.divider()
+
+    st.subheader("🏭 Generate")
+
+    with st.form("generate_form"):
+
+        prompt = st.text_input(
+            "What should AI generate?",
+            placeholder=(
+                "Example: Write a Python function "
+                "that sorts a list..."
+            ),
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            generate = st.form_submit_button(
+                "✨ Generate",
+                use_container_width=True,
+                type="primary",
+            )
+
+        with col2:
+
+            cancel = st.form_submit_button(
+                "Cancel",
+                use_container_width=True,
+            )
+
+
+    if cancel:
+
+        st.session_state.panel = None
+        st.rerun()
+
+
+    if generate:
+
+        if not prompt.strip():
+
+            st.warning(
+                "Enter a prompt first."
+            )
+
+        else:
+
+            run_ai(
+                (
+                    "Generate the following. "
+                    "Return ONLY the requested "
+                    "text or code.\n\n"
+                    + prompt
+                ),
+                "generate",
+            )
+
+
+# ============================================================
+# REWRITE PANEL
+# ============================================================
+
+if st.session_state.panel == "rewrite":
+
+    st.divider()
+
+    st.subheader("🔄 Rewrite")
+
+    with st.form("rewrite_form"):
+
+        prompt = st.text_input(
+            "How should AI rewrite it?",
+            placeholder=(
+                "Example: Make it shorter "
+                "and more professional..."
+            ),
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            rewrite = st.form_submit_button(
+                "🔄 Apply Rewrite",
+                use_container_width=True,
+                type="primary",
+            )
+
+        with col2:
+
+            cancel = st.form_submit_button(
+                "Cancel",
+                use_container_width=True,
+            )
+
+
+    if cancel:
+
+        st.session_state.panel = None
+        st.rerun()
+
+
+    if rewrite:
+
+        note = st.session_state.note.strip()
+
+        if not note:
+
+            st.warning(
+                "Write something first."
+            )
+
+        elif not prompt.strip():
+
+            st.warning(
+                "Tell AI how you want it rewritten."
+            )
+
+        else:
+
+            run_ai(
+                (
+                    prompt
+                    + "\n\nRewrite this:\n\n"
+                    + note
+                ),
+                "rewrite",
+            )
