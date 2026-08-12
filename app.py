@@ -1,20 +1,30 @@
 import streamlit as st
 from ollama import Client
 
+
 # ============================================================
 # PAGE SETUP
 # ============================================================
 
 st.set_page_config(
     page_title="AIpad",
-    page_icon="📝"
+    page_icon="📝",
+    layout="centered",
 )
+
+
+# ============================================================
+# CONSTANTS
+# ============================================================
+
+MODEL = "gpt-oss:20b-cloud"
+
 
 # ============================================================
 # SESSION STATE
 # ============================================================
 
-defaults = {
+DEFAULTS = {
     "page": "home",
     "note": "",
     "panel": None,
@@ -22,80 +32,120 @@ defaults = {
     "retry": None,
 }
 
-for key, value in defaults.items():
+for key, value in DEFAULTS.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
 
 # ============================================================
-# AI SETUP
+# OLLAMA CLIENT
 # ============================================================
 
 if "ollama_api_key" not in st.secrets:
-    st.error(
-        "`ollama_api_key` was not found in Streamlit secrets."
-    )
+    st.error("`ollama_api_key` was not found in Streamlit secrets.")
     st.stop()
 
-ollama_api_key = st.secrets["ollama_api_key"]
+OLLAMA_API_KEY = st.secrets["ollama_api_key"]
 
-ai = Client(
-    host="https://ollama.com",
-    headers={
-        "Authorization": f"Bearer {ollama_api_key}"
-    }
-)
 
-MODEL = "gpt-oss:20b-cloud"
+@st.cache_resource
+def get_ai_client(api_key):
+    """
+    Create the Ollama client once and reuse it
+    across Streamlit reruns.
+    """
+    return Client(
+        host="https://ollama.com",
+        headers={
+            "Authorization": f"Bearer {api_key}"
+        },
+    )
+
+
+ai = get_ai_client(OLLAMA_API_KEY)
 
 
 # ============================================================
-# AI FUNCTION
+# AI
 # ============================================================
 
-def ask(prompt):
+def ask_ai(prompt):
+    """
+    Stream the AI response and return the final text.
+    """
+
     response = ai.chat(
         model=MODEL,
         messages=[
             {
                 "role": "user",
-                "content": prompt
+                "content": prompt,
             }
-        ]
+        ],
+        stream=True,
     )
 
-    return response["message"]["content"]
+    result = ""
 
+    for chunk in response:
+        content = chunk.get("message", {}).get("content", "")
 
-# ============================================================
-# RUN AI
-# ============================================================
+        if content:
+            result += content
+
+    return result
+
 
 def run_ai(prompt, action):
+    """
+    Execute an AI operation and update the note.
+    """
+
     try:
+
         with st.spinner("🏭 AI is working..."):
-            result = ask(prompt)
 
-        if not result:
-            raise Exception("The AI returned an empty response.")
+            result = ask_ai(prompt)
 
+        if not result.strip():
+            raise RuntimeError(
+                "The AI returned an empty response."
+            )
+
+        # Generate appends to the existing note.
         if action == "generate":
+
             if st.session_state.note.strip():
-                st.session_state.note += "\n\n" + result
+
+                st.session_state.note += (
+                    "\n\n" + result
+                )
+
             else:
+
                 st.session_state.note = result
+
+        # Fix / Rewrite replace the note.
         else:
+
             st.session_state.note = result
 
+        # Reset UI state.
         st.session_state.panel = None
         st.session_state.error = None
         st.session_state.retry = None
 
         st.rerun()
 
-    except Exception as e:
-        st.session_state.error = str(e)
-        st.session_state.retry = (prompt, action)
+    except Exception as error:
+
+        st.session_state.error = str(error)
+
+        st.session_state.retry = (
+            prompt,
+            action,
+        )
+
         st.session_state.page = "error"
 
         st.rerun()
@@ -108,21 +158,17 @@ def run_ai(prompt, action):
 if st.session_state.page == "home":
 
     st.title("📝 AIpad")
-    st.write("Your AI-powered notepad.")
 
     st.divider()
 
-    st.subheader("Welcome to AIpad")
-
-    st.write(
-        "Write, generate, fix, and rewrite text or code."
-    )
-
     if st.button(
-        "🚀 Launch AIpad",
-        use_container_width=True
+        "🚀 Launch",
+        use_container_width=True,
+        type="primary",
     ):
+
         st.session_state.page = "main"
+
         st.rerun()
 
     st.stop()
@@ -134,35 +180,55 @@ if st.session_state.page == "home":
 
 if st.session_state.page == "error":
 
-    st.title("⚠️ AI Error")
+    st.title("⚠️ Something went wrong")
 
     st.error(
-        "AIpad couldn't get a response from Ollama."
+        "AIpad couldn't complete that request."
     )
 
     with st.expander("Show error details"):
+
         st.code(
-            st.session_state.error or "Unknown error"
+            st.session_state.error
+            or "Unknown error"
         )
 
     col1, col2 = st.columns(2)
 
     with col1:
+
         if st.button(
             "🔄 Retry",
-            use_container_width=True
+            use_container_width=True,
+            type="primary",
         ):
+
             if st.session_state.retry:
-                prompt, action = st.session_state.retry
-                run_ai(prompt, action)
+
+                prompt, action = (
+                    st.session_state.retry
+                )
+
+                # Return to main page before retrying.
+                st.session_state.page = "main"
+
+                run_ai(
+                    prompt,
+                    action,
+                )
 
     with col2:
+
         if st.button(
             "🏠 Home",
-            use_container_width=True
+            use_container_width=True,
         ):
+
             st.session_state.page = "home"
+            st.session_state.panel = None
             st.session_state.error = None
+            st.session_state.retry = None
+
             st.rerun()
 
     st.stop()
@@ -172,16 +238,19 @@ if st.session_state.page == "error":
 # MAIN PAGE
 # ============================================================
 
-st.title("AIpad")
-st.write("Write Here")
+st.title("📝 AIpad")
 
 
-# Text editor
-st.session_state.note = st.text_area(
-    "Your note",
-    value=st.session_state.note,
+# ============================================================
+# EDITOR
+# ============================================================
+
+st.text_area(
+    "Note",
     height=350,
-    placeholder="Write something here..."
+    placeholder="Write something here...",
+    label_visibility="collapsed",
+    key="note",
 )
 
 
@@ -192,73 +261,88 @@ st.session_state.note = st.text_area(
 col1, col2, col3, col4 = st.columns(4)
 
 
-# ---------------- AI FIX ----------------
+# ------------------------------------------------------------
+# AI FIX
+# ------------------------------------------------------------
 
 with col1:
 
     if st.button(
         "✨ AI Fix",
-        use_container_width=True
+        use_container_width=True,
     ):
 
-        if st.session_state.note.strip():
+        note = st.session_state.note.strip()
+
+        if not note:
+
+            st.warning(
+                "Write something first."
+            )
+
+        else:
 
             run_ai(
                 (
                     "Fix the following text or code. "
-                    "Correct errors while preserving the "
-                    "original meaning. Return ONLY the "
-                    "fixed text or code.\n\n"
-                    + st.session_state.note
+                    "Correct errors while preserving "
+                    "the original meaning. "
+                    "Return ONLY the fixed text or code.\n\n"
+                    + note
                 ),
-                "fix"
+                "fix",
             )
 
-        else:
-            st.warning("Write something first.")
 
-
-# ---------------- GENERATE ----------------
+# ------------------------------------------------------------
+# GENERATE
+# ------------------------------------------------------------
 
 with col2:
 
     if st.button(
         "🏭 Generate",
-        use_container_width=True
+        use_container_width=True,
     ):
 
         st.session_state.panel = "generate"
-        st.rerun()
 
 
-# ---------------- CLEAR ----------------
+# ------------------------------------------------------------
+# CLEAR
+# ------------------------------------------------------------
 
 with col3:
 
     if st.button(
         "🗑️ Clear",
-        use_container_width=True
+        use_container_width=True,
     ):
 
         st.session_state.note = ""
         st.session_state.panel = None
-        st.rerun()
 
 
-# ---------------- REWRITE ----------------
+# ------------------------------------------------------------
+# REWRITE
+# ------------------------------------------------------------
 
 with col4:
 
     if st.button(
         "🔄 Rewrite",
-        use_container_width=True
+        use_container_width=True,
     ):
 
         if st.session_state.note.strip():
+
             st.session_state.panel = "rewrite"
-            st.rerun()
+
         else:
-            st.warning("Write something first.")
+
+            st.warning(
+                "Write something first."
+            )
 
 
 # ============================================================
@@ -271,43 +355,55 @@ if st.session_state.panel == "generate":
 
     st.subheader("🏭 Generate")
 
-    prompt = st.text_input(
-        "What should AI generate?",
-        placeholder="Example: Write a Python calculator..."
-    )
+    with st.form("generate_form"):
 
-    col1, col2 = st.columns(2)
+        prompt = st.text_input(
+            "Prompt",
+            placeholder="What do you want to create?",
+            label_visibility="collapsed",
+        )
 
-    with col1:
+        col1, col2 = st.columns(2)
 
-        if st.button(
-            "✨ Generate",
-            use_container_width=True
-        ):
+        with col1:
 
-            if prompt.strip():
+            submitted = st.form_submit_button(
+                "✨ Generate",
+                use_container_width=True,
+                type="primary",
+            )
 
-                run_ai(
-                    (
-                        "Generate the following. "
-                        "Return ONLY the requested text or code.\n\n"
-                        + prompt
-                    ),
-                    "generate"
-                )
+        with col2:
 
-            else:
-                st.warning("Enter a prompt first.")
+            cancelled = st.form_submit_button(
+                "Cancel",
+                use_container_width=True,
+            )
 
-    with col2:
+    if cancelled:
 
-        if st.button(
-            "Cancel",
-            use_container_width=True
-        ):
+        st.session_state.panel = None
+        st.rerun()
 
-            st.session_state.panel = None
-            st.rerun()
+    if submitted:
+
+        if not prompt.strip():
+
+            st.warning(
+                "Enter a prompt first."
+            )
+
+        else:
+
+            run_ai(
+                (
+                    "Generate the following. "
+                    "Return ONLY the requested "
+                    "text or code.\n\n"
+                    + prompt
+                ),
+                "generate",
+            )
 
 
 # ============================================================
@@ -320,50 +416,64 @@ if st.session_state.panel == "rewrite":
 
     st.subheader("🔄 Rewrite")
 
-    prompt = st.text_input(
-        "How should I rewrite it?",
-        placeholder="Example: Make it shorter and professional..."
-    )
+    with st.form("rewrite_form"):
 
-    col1, col2 = st.columns(2)
+        prompt = st.text_input(
+            "Instructions",
+            placeholder=(
+                "Example: Make it shorter "
+                "and professional..."
+            ),
+        )
 
-    with col1:
+        col1, col2 = st.columns(2)
 
-        if st.button(
-            "🔄 Apply Rewrite",
-            use_container_width=True
-        ):
+        with col1:
 
-            if not st.session_state.note.strip():
+            submitted = st.form_submit_button(
+                "🔄 Apply Rewrite",
+                use_container_width=True,
+                type="primary",
+            )
 
-                st.warning("Write something first.")
+        with col2:
 
-            elif not prompt.strip():
+            cancelled = st.form_submit_button(
+                "Cancel",
+                use_container_width=True,
+            )
 
-                st.warning(
-                    "Tell AI how you want it rewritten."
-                )
+    if cancelled:
 
-            else:
+        st.session_state.panel = None
+        st.rerun()
 
-                run_ai(
-                    (
-                        prompt
-                        + "\n\nRewrite this:\n\n"
-                        + st.session_state.note
-                    ),
-                    "rewrite"
-                )
+    if submitted:
 
-    with col2:
+        note = st.session_state.note.strip()
 
-        if st.button(
-            "Cancel",
-            use_container_width=True
-        ):
+        if not note:
 
-            st.session_state.panel = None
-            st.rerun()
+            st.warning(
+                "Write something first."
+            )
+
+        elif not prompt.strip():
+
+            st.warning(
+                "Tell AI how you want it rewritten."
+            )
+
+        else:
+
+            run_ai(
+                (
+                    prompt
+                    + "\n\nRewrite this:\n\n"
+                    + note
+                ),
+                "rewrite",
+            )
 
 
 # ============================================================
@@ -374,9 +484,10 @@ st.divider()
 
 if st.button(
     "🏠 Home",
-    use_container_width=True
+    use_container_width=True,
 ):
 
     st.session_state.page = "home"
     st.session_state.panel = None
+
     st.rerun()
