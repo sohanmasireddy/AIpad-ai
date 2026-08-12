@@ -149,8 +149,11 @@ def ask_ai(prompt):
 
 def run_ai(prompt, action):
     try:
-        with st.spinner("🏭 AI is working..."):
+        if action in ("generate", "rewrite"):
             result = ask_ai(prompt)
+        else:
+            with st.spinner("🏭 AI is working..."):
+                result = ask_ai(prompt)
 
         if not result.strip():
             raise RuntimeError("The AI returned an empty response.")
