@@ -46,8 +46,6 @@ OLLAMA_API_KEY = st.secrets["ollama_api_key"]
 
 @st.cache_resource
 def get_ai_client(api_key):
-    # Note: Standard local Ollama runs on http://localhost:11434 without auth.
-    # Keep this as-is if you are using a custom cloud-hosted Ollama endpoint.
     return Client(
         host="https://ollama.com",
         headers={
@@ -117,17 +115,13 @@ controls, editor = st.columns(
 )
 
 # ============================================================
-# CONTROLS
+# CONTROLS (Left Sidebar)
 # ============================================================
 
 with controls:
-    # Small title
     st.subheader("📝 AIpad")
     st.divider()
 
-    # ========================================================
-    # AI FIX
-    # ========================================================
     if st.button("✨ AI Fix", use_container_width=True):
         note = st.session_state.note.strip()
         if not note:
@@ -144,31 +138,34 @@ with controls:
                 "fix",
             )
 
-    # ========================================================
-    # GENERATE
-    # ========================================================
     if st.button("🏭 Generate", use_container_width=True):
         st.session_state.panel = "generate"
 
-    # ========================================================
-    # REWRITE
-    # ========================================================
     if st.button("🔄 Rewrite", use_container_width=True):
         if st.session_state.note.strip():
             st.session_state.panel = "rewrite"
         else:
             st.warning("Write something first.")
 
-    # ========================================================
-    # CLEAR
-    # ========================================================
     if st.button("🗑️ Clear", use_container_width=True):
         st.session_state.note = ""
         st.session_state.panel = None
 
-    # ========================================================
-    # GENERATE INPUT
-    # ========================================================
+# ============================================================
+# EDITOR (Right Main Area)
+# ============================================================
+
+with editor:
+    # 1. Main Text Area
+    st.text_area(
+        "Your note",
+        height=300,
+        placeholder="Start writing here...",
+        key="note",
+        label_visibility="collapsed",
+    )
+
+    # 2. Generate Input Panel (Appears Under Editor)
     if st.session_state.panel == "generate":
         st.divider()
         st.caption("🏭 Generate")
@@ -180,28 +177,29 @@ with controls:
             label_visibility="collapsed",
         )
         
-        if st.button("✨ Run Generate", use_container_width=True, type="primary"):
-            prompt = st.session_state.generate_prompt.strip()
-            if not prompt:
-                st.warning("Enter a prompt first.")
-            else:
-                run_ai(
-                    (
-                        "Generate the following. "
-                        "Return ONLY the requested "
-                        "text or code.\n\n"
-                        + prompt
-                    ),
-                    "generate",
-                )
-                
-        if st.button("Cancel", use_container_width=True):
-            st.session_state.panel = None
-            st.rerun()
+        # Side-by-side buttons for better UI in the wide column
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("✨ Run Generate", use_container_width=True, type="primary"):
+                prompt = st.session_state.generate_prompt.strip()
+                if not prompt:
+                    st.warning("Enter a prompt first.")
+                else:
+                    run_ai(
+                        (
+                            "Generate the following. "
+                            "Return ONLY the requested "
+                            "text or code.\n\n"
+                            + prompt
+                        ),
+                        "generate",
+                    )
+        with col2:
+            if st.button("Cancel", use_container_width=True):
+                st.session_state.panel = None
+                st.rerun()
 
-    # ========================================================
-    # REWRITE INPUT
-    # ========================================================
+    # 3. Rewrite Input Panel (Appears Under Editor)
     if st.session_state.panel == "rewrite":
         st.divider()
         st.caption("🔄 Rewrite")
@@ -213,31 +211,31 @@ with controls:
             label_visibility="collapsed",
         )
         
-        if st.button("🔄 Apply Rewrite", use_container_width=True, type="primary"):
-            note = st.session_state.note.strip()
-            instructions = st.session_state.rewrite_prompt.strip()
-            
-            if not note:
-                st.warning("Write something first.")
-            elif not instructions:
-                st.warning("Tell AI how to rewrite it.")
-            else:
-                run_ai(
-                    (
-                        instructions
-                        + "\n\nRewrite this:\n\n"
-                        + note
-                    ),
-                    "rewrite",
-                )
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🔄 Apply Rewrite", use_container_width=True, type="primary"):
+                note = st.session_state.note.strip()
+                instructions = st.session_state.rewrite_prompt.strip()
                 
-        if st.button("Cancel", use_container_width=True):
-            st.session_state.panel = None
-            st.rerun()
+                if not note:
+                    st.warning("Write something first.")
+                elif not instructions:
+                    st.warning("Tell AI how to rewrite it.")
+                else:
+                    run_ai(
+                        (
+                            instructions
+                            + "\n\nRewrite this:\n\n"
+                            + note
+                        ),
+                        "rewrite",
+                    )
+        with col2:
+            if st.button("Cancel", use_container_width=True):
+                st.session_state.panel = None
+                st.rerun()
 
-    # ========================================================
-    # ERROR
-    # ========================================================
+    # 4. Error Panel (Appears Under Editor)
     if st.session_state.error:
         st.divider()
         st.error("AI request failed.")
@@ -246,20 +244,7 @@ with controls:
             st.code(st.session_state.error)
             
         if st.session_state.retry:
-            if st.button("🔄 Retry", use_container_width=True):
+            if st.button("🔄 Retry"):
                 prompt, action = st.session_state.retry
                 st.session_state.error = None
                 run_ai(prompt, action)
-
-# ============================================================
-# EDITOR
-# ============================================================
-
-with editor:
-    st.text_area(
-        "Your note",
-        height=320,  # Increased height for a better notepad experience
-        placeholder="Start writing here...",
-        key="note",
-        label_visibility="collapsed",
-    )
