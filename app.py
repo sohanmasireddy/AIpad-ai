@@ -147,14 +147,14 @@ def ask_ai(prompt):
 
     return strip_preamble(result)
 
-def run_ai(prompt, action, status_placeholder=None):
+def run_ai(prompt, action, title_placeholder=None):
     try:
         if action in ("generate", "rewrite"):
-            if status_placeholder is not None:
-                status_placeholder.markdown("⏳")
+            if title_placeholder is not None:
+                title_placeholder.subheader("📝 AIpad ⏳")
             result = ask_ai(prompt)
-            if status_placeholder is not None:
-                status_placeholder.empty()
+            if title_placeholder is not None:
+                title_placeholder.subheader("📝 AIpad")
         else:
             with st.spinner("🏭 AI is working..."):
                 result = ask_ai(prompt)
@@ -194,10 +194,8 @@ controls, editor = st.columns(
 # ============================================================
 
 with controls:
-    title_col, status_col = st.columns([4, 1])
-    with title_col:
-        st.subheader("📝 AIpad")
-    status_placeholder = status_col.empty()
+    title_placeholder = st.empty()
+    title_placeholder.subheader("📝 AIpad")
 
     # ========================================================
     # MODEL SELECTOR
@@ -256,7 +254,7 @@ with controls:
                 + prompt_to_run
             ),
             "generate",
-            status_placeholder,
+            title_placeholder,
         )
 
     # ========================================================
@@ -291,7 +289,7 @@ with controls:
                     + note
                 ),
                 "rewrite",
-                status_placeholder,
+                title_placeholder,
             )
 
     # ========================================================
