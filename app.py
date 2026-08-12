@@ -27,7 +27,7 @@ defaults = {
     "error": None,
     "retry": None,
     "rewrite_prompt": "",
-    "trigger_generate": None,  # State flag for our new text box
+    "trigger_generate": None,
 }
 
 for key, value in defaults.items():
@@ -140,17 +140,11 @@ with controls:
                 ),
                 "fix",
             )
-
-    # ========================================================
-    # ALWAYS-ON GENERATE BOX
-    # ========================================================
     
-    # Callback to handle generation instantly when Enter is pressed
     def handle_generate():
         prompt = st.session_state.generate_input_box.strip()
         if prompt:
             st.session_state.trigger_generate = prompt
-        # Clear the input box so it doesn't trigger again accidentally
         st.session_state.generate_input_box = ""
 
     st.text_input(
@@ -161,7 +155,6 @@ with controls:
         on_change=handle_generate
     )
 
-    # Check if the Enter key was pressed and the callback populated our trigger
     if st.session_state.trigger_generate:
         prompt_to_run = st.session_state.trigger_generate
         st.session_state.trigger_generate = None  # Reset flag immediately
@@ -250,7 +243,7 @@ with controls:
 with editor:
     st.text_area(
         "Your note",
-        height=330,
+        height=350,
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
