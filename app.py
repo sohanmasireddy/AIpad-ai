@@ -150,10 +150,12 @@ def ask_ai(prompt):
 def run_ai(prompt, action, title_placeholder=None):
     try:
         if title_placeholder is not None:
-            title_placeholder.subheader("📝 AIpad ⏳")
-        result = ask_ai(prompt)
-        if title_placeholder is not None:
+            with title_placeholder.container():
+                with st.spinner(""):
+                    result = ask_ai(prompt)
             title_placeholder.subheader("📝 AIpad")
+        else:
+            result = ask_ai(prompt)
 
         if not result.strip():
             raise RuntimeError("The AI returned an empty response.")
