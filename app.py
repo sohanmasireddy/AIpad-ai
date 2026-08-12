@@ -34,7 +34,6 @@ defaults = {
 }
 
 for key, value in defaults.items():
-
     if key not in st.session_state:
         st.session_state[key] = value
 
@@ -74,7 +73,7 @@ ai = get_ai_client(OLLAMA_API_KEY)
 
 
 # ============================================================
-# AI FUNCTION
+# AI REQUEST
 # ============================================================
 
 def ask_ai(prompt):
@@ -159,6 +158,9 @@ def run_ai(prompt, action):
         st.session_state.error = None
         st.session_state.retry = None
 
+        st.session_state.generate_prompt = ""
+        st.session_state.rewrite_prompt = ""
+
         st.rerun()
 
 
@@ -237,7 +239,15 @@ with controls:
         use_container_width=True,
     ):
 
-        st.session_state.panel = "generate"
+        if st.session_state.panel == "generate":
+
+            st.session_state.panel = None
+
+        else:
+
+            st.session_state.panel = "generate"
+
+        st.rerun()
 
 
     # ========================================================
@@ -275,26 +285,63 @@ with controls:
 
 
     # ========================================================
-    # GENERATE PANEL
+    # ERROR
+    # ========================================================
+
+    if st.session_state.error:
+
+        st.divider()
+
+        st.error(
+            "AI request failed."
+        )
+
+        with st.expander("Details"):
+
+            st.code(
+                st.session_state.error
+            )
+
+        if st.session_state.retry:
+
+            if st.button(
+                "🔄 Retry",
+                use_container_width=True,
+            ):
+
+                prompt, action = (
+                    st.session_state.retry
+                )
+
+                st.session_state.error = None
+
+                run_ai(
+                    prompt,
+                    action,
+                )
+
+
+# ============================================================
+# RIGHT EDITOR AREA
+# ============================================================
+
+with editor:
+
+    # ========================================================
+    # GENERATE PROMPT
     # ========================================================
 
     if st.session_state.panel == "generate":
 
-        st.divider()
-
-        st.caption("🏭 Generate")
-
-
         st.text_input(
             "Generate prompt",
-            placeholder="What should I create?",
+            placeholder="What do you want to create?",
             key="generate_prompt",
             label_visibility="collapsed",
         )
 
-
         if st.button(
-            "✨ Run Generate",
+            "✨ Generate",
             use_container_width=True,
             type="primary",
         ):
@@ -307,7 +354,7 @@ with controls:
             if not prompt:
 
                 st.warning(
-                    "Enter a prompt first."
+                    "Enter something to create."
                 )
 
             else:
@@ -329,28 +376,27 @@ with controls:
         ):
 
             st.session_state.panel = None
+            st.session_state.generate_prompt = ""
 
             st.rerun()
 
 
+        # Smaller editor while Generate is open
+        editor_height = 480
+
+
     # ========================================================
-    # REWRITE PANEL
+    # REWRITE PROMPT
     # ========================================================
 
-    if st.session_state.panel == "rewrite":
-
-        st.divider()
-
-        st.caption("🔄 Rewrite")
-
+    elif st.session_state.panel == "rewrite":
 
         st.text_input(
-            "Rewrite instructions",
-            placeholder="Make it shorter...",
+            "Rewrite prompt",
+            placeholder="How do you want to rewrite it?",
             key="rewrite_prompt",
             label_visibility="collapsed",
         )
-
 
         if st.button(
             "🔄 Apply Rewrite",
@@ -358,16 +404,12 @@ with controls:
             type="primary",
         ):
 
-            note = (
-                st.session_state.note
-                .strip()
-            )
+            note = st.session_state.note.strip()
 
             instructions = (
                 st.session_state.rewrite_prompt
                 .strip()
             )
-
 
             if not note:
 
@@ -399,75 +441,31 @@ with controls:
         ):
 
             st.session_state.panel = None
+            st.session_state.rewrite_prompt = ""
 
             st.rerun()
 
 
+        # Smaller editor while Rewrite is open
+        editor_height = 480
+
+
     # ========================================================
-    # ERROR
+    # NORMAL EDITOR
     # ========================================================
 
-    if st.session_state.error:
+    else:
 
-        st.divider()
-
-        st.error(
-            "AI request failed."
-        )
+        editor_height = 650
 
 
-        with st.expander("Details"):
-
-            st.code(
-                st.session_state.error
-            )
-
-
-        if st.session_state.retry:
-
-            if st.button(
-                "🔄 Retry",
-                use_container_width=True,
-            ):
-
-                prompt, action = (
-                    st.session_state.retry
-                )
-
-                st.session_state.error = None
-
-                run_ai(
-                    prompt,
-                    action,
-                )
-
-
-# ============================================================
-# RIGHT EDITOR AREA
-# ============================================================
-
-with editor:
-
-    # --------------------------------------------------------
-    # CENTERED TITLE
-    # --------------------------------------------------------
-
-    title_left, title_center, title_right = st.columns(
-        [1, 2, 1]
-    )
-
-    with title_center:
-
-        st.title("📝 AIpad")
-
-
-    # --------------------------------------------------------
-    # TEXT BOX
-    # --------------------------------------------------------
+    # ========================================================
+    # MAIN TEXT AREA
+    # ========================================================
 
     st.text_area(
         "Your note",
-        height=260,
+        height=editor_height,
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
