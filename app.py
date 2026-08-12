@@ -175,6 +175,47 @@ def run_ai(prompt, action):
 
 
 # ============================================================
+# PANEL CALLBACKS
+# ============================================================
+
+def open_generate():
+
+    st.session_state.panel = "generate"
+
+
+def cancel_generate():
+
+    st.session_state.panel = None
+    st.session_state.generate_prompt = ""
+
+
+def open_rewrite():
+
+    if st.session_state.note.strip():
+
+        st.session_state.panel = "rewrite"
+
+    else:
+
+        st.session_state.error = None
+
+
+def cancel_rewrite():
+
+    st.session_state.panel = None
+    st.session_state.rewrite_prompt = ""
+
+
+def clear_note():
+
+    st.session_state.note = ""
+    st.session_state.panel = None
+    st.session_state.error = None
+    st.session_state.generate_prompt = ""
+    st.session_state.rewrite_prompt = ""
+
+
+# ============================================================
 # MAIN LAYOUT
 # ============================================================
 
@@ -234,20 +275,11 @@ with controls:
     # GENERATE
     # ========================================================
 
-    if st.button(
+    st.button(
         "🏭 Generate",
         use_container_width=True,
-    ):
-
-        if st.session_state.panel == "generate":
-
-            st.session_state.panel = None
-
-        else:
-
-            st.session_state.panel = "generate"
-
-        st.rerun()
+        on_click=open_generate,
+    )
 
 
     # ========================================================
@@ -274,14 +306,11 @@ with controls:
     # CLEAR
     # ========================================================
 
-    if st.button(
+    st.button(
         "🗑️ Clear",
         use_container_width=True,
-    ):
-
-        st.session_state.note = ""
-        st.session_state.panel = None
-        st.session_state.error = None
+        on_click=clear_note,
+    )
 
 
     # ========================================================
@@ -301,6 +330,7 @@ with controls:
             st.code(
                 st.session_state.error
             )
+
 
         if st.session_state.retry:
 
@@ -322,13 +352,13 @@ with controls:
 
 
 # ============================================================
-# RIGHT EDITOR AREA
+# RIGHT EDITOR
 # ============================================================
 
 with editor:
 
     # ========================================================
-    # GENERATE PROMPT
+    # GENERATE PANEL
     # ========================================================
 
     if st.session_state.panel == "generate":
@@ -339,6 +369,7 @@ with editor:
             key="generate_prompt",
             label_visibility="collapsed",
         )
+
 
         if st.button(
             "✨ Generate",
@@ -370,23 +401,19 @@ with editor:
                 )
 
 
-        if st.button(
+        st.button(
             "Cancel",
             use_container_width=True,
-        ):
-
-            st.session_state.panel = None
-            st.session_state.generate_prompt = ""
-
-            st.rerun()
+            on_click=cancel_generate,
+        )
 
 
-        # Smaller editor while Generate is open
+        # Smaller editor
         editor_height = 480
 
 
     # ========================================================
-    # REWRITE PROMPT
+    # REWRITE PANEL
     # ========================================================
 
     elif st.session_state.panel == "rewrite":
@@ -398,18 +425,23 @@ with editor:
             label_visibility="collapsed",
         )
 
+
         if st.button(
             "🔄 Apply Rewrite",
             use_container_width=True,
             type="primary",
         ):
 
-            note = st.session_state.note.strip()
+            note = (
+                st.session_state.note
+                .strip()
+            )
 
             instructions = (
                 st.session_state.rewrite_prompt
                 .strip()
             )
+
 
             if not note:
 
@@ -435,19 +467,15 @@ with editor:
                 )
 
 
-        if st.button(
+        st.button(
             "Cancel",
             use_container_width=True,
-        ):
-
-            st.session_state.panel = None
-            st.session_state.rewrite_prompt = ""
-
-            st.rerun()
+            on_click=cancel_rewrite,
+        )
 
 
-        # Smaller editor while Rewrite is open
-        editor_height = 480
+        # Smaller editor
+        editor_height = 160
 
 
     # ========================================================
@@ -456,7 +484,7 @@ with editor:
 
     else:
 
-        editor_height = 650
+        editor_height = 260
 
 
     # ========================================================
