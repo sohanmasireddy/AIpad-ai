@@ -108,18 +108,12 @@ def run_ai(prompt, action):
 if st.session_state.page == "home":
 
     st.title("📝 AIpad")
-    st.write("Your AI-powered notepad.")
+
 
     st.divider()
 
-    st.subheader("Welcome to AIpad")
-
-    st.write(
-        "Write, generate, fix, and rewrite text or code."
-    )
-
     if st.button(
-        "🚀 Launch AIpad",
+        "🚀 Launch",
         use_container_width=True
     ):
         st.session_state.page = "main"
@@ -134,10 +128,10 @@ if st.session_state.page == "home":
 
 if st.session_state.page == "error":
 
-    st.title("⚠️ AI Error")
+    st.title("⚠️ Error")
 
     st.error(
-        "AIpad couldn't get a response from Ollama."
+        ""
     )
 
     with st.expander("Show error details"):
@@ -173,12 +167,10 @@ if st.session_state.page == "error":
 # ============================================================
 
 st.title("AIpad")
-st.write("Write Here")
-
 
 # Text editor
 st.session_state.note = st.text_area(
-    "Your note",
+  
     value=st.session_state.note,
     height=350,
     placeholder="Write something here..."
@@ -370,7 +362,6 @@ if st.session_state.panel == "rewrite":
 # HOME BUTTON
 # ============================================================
 
-st.divider()
 
 if st.button(
     "🏠 Home",
