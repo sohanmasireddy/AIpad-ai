@@ -378,7 +378,7 @@ with center:
 
 st.text_area(
     "Your note",
-    height=500,
+    height=300,
     placeholder="Start writing here...",
     key="note",
     label_visibility="collapsed",
