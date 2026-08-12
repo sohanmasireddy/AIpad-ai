@@ -149,15 +149,11 @@ def ask_ai(prompt):
 
 def run_ai(prompt, action, title_placeholder=None):
     try:
-        if action in ("generate", "rewrite"):
-            if title_placeholder is not None:
-                title_placeholder.subheader("📝 AIpad ⏳")
-            result = ask_ai(prompt)
-            if title_placeholder is not None:
-                title_placeholder.subheader("📝 AIpad")
-        else:
-            with st.spinner("🏭 AI is working..."):
-                result = ask_ai(prompt)
+        if title_placeholder is not None:
+            title_placeholder.subheader("📝 AIpad ⏳")
+        result = ask_ai(prompt)
+        if title_placeholder is not None:
+            title_placeholder.subheader("📝 AIpad")
 
         if not result.strip():
             raise RuntimeError("The AI returned an empty response.")
@@ -224,6 +220,7 @@ with controls:
                     + note
                 ),
                 "fix",
+                title_placeholder,
             )
 
     # ========================================================
@@ -313,7 +310,7 @@ with controls:
             if st.button("🔄 Retry", use_container_width=True):
                 prompt, action = st.session_state.retry
                 st.session_state.error = None
-                run_ai(prompt, action)
+                run_ai(prompt, action, title_placeholder)
 
 # ============================================================
 # EDITOR (Right Main Area)
