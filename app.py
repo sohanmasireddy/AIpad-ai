@@ -151,7 +151,7 @@ def run_ai(prompt, action, title_placeholder=None):
     try:
         if title_placeholder is not None:
             with title_placeholder.container():
-                with st.spinner(""):
+                with st.spinner("📝 AIpad"):
                     result = ask_ai(prompt)
             title_placeholder.subheader("📝 AIpad")
         else:
