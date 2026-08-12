@@ -250,7 +250,7 @@ with controls:
 with editor:
     st.text_area(
         "Your note",
-        height=340,
+        height=330,
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
