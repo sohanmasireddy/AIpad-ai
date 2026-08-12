@@ -15,7 +15,12 @@ st.set_page_config(
 # CONFIG
 # ============================================================
 
-MODEL = "gpt-oss:20b-cloud"
+MODEL_OPTIONS = {
+    "Nvidia Nemotron 3 Nano": "nemotron-3-nano:30b-cloud",
+    "ChatGPT-OSS 20B": "gpt-oss:20b-cloud",
+    "Google Gemma 4": "gemma4:31b-cloud",
+}
+DEFAULT_MODEL_LABEL = "Nvidia Nemotron 3 Nano"
 
 # ============================================================
 # SESSION STATE
@@ -28,6 +33,7 @@ defaults = {
     "retry": None,
     "trigger_generate": None,
     "trigger_rewrite": None,
+    "model_label": DEFAULT_MODEL_LABEL,
 }
 
 for key, value in defaults.items():
@@ -61,7 +67,7 @@ ai = get_ai_client(OLLAMA_API_KEY)
 
 def ask_ai(prompt):
     response = ai.chat(
-        model=MODEL,
+        model=MODEL_OPTIONS[st.session_state.model_label],
         messages=[
             {
                 "role": "user",
@@ -120,6 +126,18 @@ controls, editor = st.columns(
 
 with controls:
     st.subheader("📝 AIpad")
+
+    # ========================================================
+    # MODEL SELECTOR
+    # ========================================================
+    st.selectbox(
+        "Model",
+        options=list(MODEL_OPTIONS.keys()),
+        key="model_label",
+        label_visibility="collapsed",
+    )
+
+    st.divider()
 
     # ========================================================
     # AI FIX
