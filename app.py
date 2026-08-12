@@ -26,8 +26,8 @@ defaults = {
     "panel": None,
     "error": None,
     "retry": None,
-    "generate_prompt": "",
     "rewrite_prompt": "",
+    "trigger_generate": None,  # State flag for our new text box
 }
 
 for key, value in defaults.items():
@@ -123,100 +123,8 @@ with controls:
     st.divider()
 
     # ========================================================
-    # INPUT PANELS (Placed OVER the main buttons)
+    # AI FIX
     # ========================================================
-
-    # 1. Generate Input Panel
-    if st.session_state.panel == "generate":
-        st.caption("🏭 Generate")
-        
-        st.text_input(
-            "Generate prompt",
-            placeholder="What should I create?",
-            key="generate_prompt",
-            label_visibility="collapsed",
-        )
-        
-        # Placed side-by-side to save vertical space
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("✨ Run", use_container_width=True, type="primary"):
-                prompt = st.session_state.generate_prompt.strip()
-                if not prompt:
-                    st.warning("Enter a prompt first.")
-                else:
-                    run_ai(
-                        (
-                            "Generate the following. "
-                            "Return ONLY the requested "
-                            "text or code.\n\n"
-                            + prompt
-                        ),
-                        "generate",
-                    )
-        with col2:
-            if st.button("Cancel", use_container_width=True):
-                st.session_state.panel = None
-                st.rerun()
-        
-        st.divider()
-
-    # 2. Rewrite Input Panel
-    if st.session_state.panel == "rewrite":
-        st.caption("🔄 Rewrite")
-        
-        st.text_input(
-            "Rewrite instructions",
-            placeholder="Make it shorter...",
-            key="rewrite_prompt",
-            label_visibility="collapsed",
-        )
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🔄 Apply", use_container_width=True, type="primary"):
-                note = st.session_state.note.strip()
-                instructions = st.session_state.rewrite_prompt.strip()
-                
-                if not note:
-                    st.warning("Write something first.")
-                elif not instructions:
-                    st.warning("Tell AI how to rewrite it.")
-                else:
-                    run_ai(
-                        (
-                            instructions
-                            + "\n\nRewrite this:\n\n"
-                            + note
-                        ),
-                        "rewrite",
-                    )
-        with col2:
-            if st.button("Cancel", use_container_width=True):
-                st.session_state.panel = None
-                st.rerun()
-                
-        st.divider()
-
-    # 3. Error Panel
-    if st.session_state.error:
-        st.error("AI request failed.")
-        
-        with st.expander("Details"):
-            st.code(st.session_state.error)
-            
-        if st.session_state.retry:
-            if st.button("🔄 Retry", use_container_width=True):
-                prompt, action = st.session_state.retry
-                st.session_state.error = None
-                run_ai(prompt, action)
-                
-        st.divider()
-
-    # ========================================================
-    # MAIN BUTTONS (Placed UNDER the input panels)
-    # ========================================================
-
     if st.button("✨ AI Fix", use_container_width=True):
         note = st.session_state.note.strip()
         if not note:
@@ -233,20 +141,107 @@ with controls:
                 "fix",
             )
 
-    if st.button("🏭 Generate", use_container_width=True):
-        st.session_state.panel = "generate"
-        st.rerun()
+    # ========================================================
+    # ALWAYS-ON GENERATE BOX
+    # ========================================================
+    
+    # Callback to handle generation instantly when Enter is pressed
+    def handle_generate():
+        prompt = st.session_state.generate_input_box.strip()
+        if prompt:
+            st.session_state.trigger_generate = prompt
+        # Clear the input box so it doesn't trigger again accidentally
+        st.session_state.generate_input_box = ""
 
+    st.text_input(
+        "Generate",
+        placeholder="Generate...",
+        key="generate_input_box",
+        label_visibility="collapsed",
+        on_change=handle_generate
+    )
+
+    # Check if the Enter key was pressed and the callback populated our trigger
+    if st.session_state.trigger_generate:
+        prompt_to_run = st.session_state.trigger_generate
+        st.session_state.trigger_generate = None  # Reset flag immediately
+        run_ai(
+            (
+                "Generate the following. "
+                "Return ONLY the requested "
+                "text or code.\n\n"
+                + prompt_to_run
+            ),
+            "generate",
+        )
+
+    # ========================================================
+    # REWRITE
+    # ========================================================
     if st.button("🔄 Rewrite", use_container_width=True):
         if st.session_state.note.strip():
             st.session_state.panel = "rewrite"
-            st.rerun()
         else:
             st.warning("Write something first.")
 
+    # ========================================================
+    # CLEAR
+    # ========================================================
     if st.button("🗑️ Clear", use_container_width=True):
         st.session_state.note = ""
         st.session_state.panel = None
+
+    # ========================================================
+    # REWRITE INPUT PANEL (Appears at bottom of sidebar)
+    # ========================================================
+    if st.session_state.panel == "rewrite":
+        st.divider()
+        st.caption("🔄 Rewrite")
+        
+        st.text_input(
+            "Rewrite instructions",
+            placeholder="Make it shorter...",
+            key="rewrite_prompt",
+            label_visibility="collapsed",
+        )
+        
+        if st.button("🔄 Apply Rewrite", use_container_width=True, type="primary"):
+            note = st.session_state.note.strip()
+            instructions = st.session_state.rewrite_prompt.strip()
+            
+            if not note:
+                st.warning("Write something first.")
+            elif not instructions:
+                st.warning("Tell AI how to rewrite it.")
+            else:
+                run_ai(
+                    (
+                        instructions
+                        + "\n\nRewrite this:\n\n"
+                        + note
+                    ),
+                    "rewrite",
+                )
+                
+        if st.button("Cancel", use_container_width=True):
+            st.session_state.panel = None
+            st.rerun()
+
+    # ========================================================
+    # ERROR PANEL
+    # ========================================================
+    if st.session_state.error:
+        st.divider()
+        st.error("AI request failed.")
+        
+        with st.expander("Details"):
+            st.code(st.session_state.error)
+            
+        if st.session_state.retry:
+            if st.button("🔄 Retry", use_container_width=True):
+                prompt, action = st.session_state.retry
+                st.session_state.error = None
+                run_ai(prompt, action)
 
 # ============================================================
 # EDITOR (Right Main Area)
@@ -255,7 +250,7 @@ with controls:
 with editor:
     st.text_area(
         "Your note",
-        height=300,
+        height=400,
         placeholder="Start writing here...",
         key="note",
         label_visibility="collapsed",
