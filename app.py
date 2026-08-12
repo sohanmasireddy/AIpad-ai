@@ -272,8 +272,8 @@ if st.session_state.panel == "generate":
     st.subheader("🏭 Generate")
 
     prompt = st.text_input(
-        "What should AI generate?",
-        placeholder="Example: Write a Python calculator..."
+        "",
+        placeholder="What do you want to create?"
     )
 
     col1, col2 = st.columns(2)
