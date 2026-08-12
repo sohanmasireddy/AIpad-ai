@@ -22,6 +22,18 @@ MODEL_OPTIONS = {
 }
 DEFAULT_MODEL_LABEL = "Nvidia Nemotron 3 Nano"
 
+SYSTEM_PROMPT = (
+    "You are a text/code processing engine embedded in an app. "
+    "Output ONLY the requested text or code, with no commentary "
+    "before or after it. "
+    "Never say things like 'Here is...', 'Sure, I...', 'Ok I...', "
+    "or describe what you did. "
+    "Do not wrap the output in markdown code fences unless the "
+    "user's content itself is a code block that needs them. "
+    "Your entire response is inserted directly into the user's "
+    "document, so anything you write becomes part of it."
+)
+
 # ============================================================
 # SESSION STATE
 # ============================================================
@@ -65,10 +77,60 @@ ai = get_ai_client(OLLAMA_API_KEY)
 # AI
 # ============================================================
 
+def strip_preamble(text):
+    """Remove a leading/trailing conversational line that some models
+    add despite instructions, e.g. 'Ok I humanized it.' Only strips
+    a line that is clearly its own paragraph (separated by a blank
+    line from the real content), so real content is never touched."""
+    text = text.strip()
+
+    preamble_starts = (
+        "ok ", "okay ", "sure", "here", "certainly", "of course",
+        "got it", "done", "this is", "below is", "the following",
+    )
+
+    lines = text.split("\n")
+
+    # Leading preamble: first line matches AND is followed by a blank line
+    if (
+        len(lines) > 1
+        and lines[0].strip().lower().startswith(preamble_starts)
+        and len(lines[0]) < 120
+        and lines[1].strip() == ""
+    ):
+        lines = lines[1:]
+        while lines and not lines[0].strip():
+            lines.pop(0)
+
+    # Trailing postamble: last line matches AND is preceded by a blank line
+    if (
+        len(lines) > 1
+        and lines[-1].strip().lower().startswith(preamble_starts)
+        and len(lines[-1]) < 120
+        and lines[-2].strip() == ""
+    ):
+        lines = lines[:-1]
+        while lines and not lines[-1].strip():
+            lines.pop()
+
+    text = "\n".join(lines).strip()
+
+    # Strip a single wrapping ```...``` fence if the whole response is one
+    if text.startswith("```") and text.endswith("```"):
+        first_newline = text.find("\n")
+        if first_newline != -1:
+            text = text[first_newline + 1:-3].strip()
+
+    return text
+
 def ask_ai(prompt):
     response = ai.chat(
         model=MODEL_OPTIONS[st.session_state.model_label],
         messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
             {
                 "role": "user",
                 "content": prompt,
@@ -83,7 +145,7 @@ def ask_ai(prompt):
         if content:
             result += content
 
-    return result
+    return strip_preamble(result)
 
 def run_ai(prompt, action):
     try:
