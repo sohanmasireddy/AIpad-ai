@@ -1,5 +1,6 @@
 import streamlit as st
 from ollama import Client
+import os
 
 
 # ============================================================
@@ -8,7 +9,6 @@ from ollama import Client
 
 st.set_page_config(
     page_title="AIpad",
-    page_icon="📝",
     layout="wide",
 )
 
@@ -19,8 +19,6 @@ st.set_page_config(
 
 MODEL = "gpt-oss:20b-cloud"
 
-# Path to the logo/image.
-# Keep this file in the same folder as this script.
 LOGO_PATH = "e9da5025-e172-441d-9f06-8dfa797da9b0.png"
 
 
@@ -87,9 +85,7 @@ ai = get_ai_client(OLLAMA_API_KEY)
 
 def strip_preamble(text):
     """Remove a leading/trailing conversational line that some models
-    add despite instructions, e.g. 'Ok I humanized it.' Only strips
-    a line that is clearly its own paragraph (separated by a blank
-    line from the real content), so real content is never touched."""
+    add despite instructions."""
 
     text = text.strip()
 
@@ -126,7 +122,7 @@ def strip_preamble(text):
 
     text = "\n".join(lines).strip()
 
-    # Strip a single wrapping ```...``` fence
+    # Strip a single wrapping code fence
     if text.startswith("```") and text.endswith("```"):
         first_newline = text.find("\n")
 
@@ -165,23 +161,20 @@ def ask_ai(prompt):
 
 def run_ai(prompt, action, title_placeholder=None):
     try:
-        if title_placeholder is not None:
-            with title_placeholder.container():
-                with st.spinner("📝 AIpad"):
-                    result = ask_ai(prompt)
 
-            title_placeholder.subheader("📝 AIpad")
-        else:
-            result = ask_ai(prompt)
+        # AI works normally without changing the title.
+        result = ask_ai(prompt)
 
         if not result.strip():
             raise RuntimeError("The AI returned an empty response.")
 
         if action == "generate":
+
             if st.session_state.note.strip():
                 st.session_state.note += "\n\n" + result
             else:
                 st.session_state.note = result
+
         else:
             st.session_state.note = result
 
@@ -192,6 +185,7 @@ def run_ai(prompt, action, title_placeholder=None):
         st.rerun()
 
     except Exception as error:
+
         st.session_state.error = str(error)
         st.session_state.retry = (prompt, action)
 
@@ -207,13 +201,16 @@ controls, editor = st.columns(
 
 
 # ============================================================
-# CONTROLS (Left Sidebar)
+# CONTROLS
 # ============================================================
 
 with controls:
 
-    title_placeholder = st.empty()
-    title_placeholder.subheader("📝 AIpad")
+    # ========================================================
+    # TITLE
+    # ========================================================
+
+    st.subheader(" AIpad")
 
 
     # ========================================================
@@ -237,7 +234,6 @@ with controls:
                     + note
                 ),
                 "fix",
-                title_placeholder,
             )
 
 
@@ -278,7 +274,6 @@ with controls:
                 + prompt_to_run
             ),
             "generate",
-            title_placeholder,
         )
 
 
@@ -324,7 +319,6 @@ with controls:
                     + note
                 ),
                 "rewrite",
-                title_placeholder,
             )
 
 
@@ -341,9 +335,7 @@ with controls:
     # ========================================================
     # LOGO / IMAGE
     # ========================================================
-    # Image is intentionally UNDER the Clear button.
-
-    import os
+    # The image stays UNDER the Clear button.
 
     if os.path.exists(LOGO_PATH):
 
@@ -383,12 +375,11 @@ with controls:
                 run_ai(
                     prompt,
                     action,
-                    title_placeholder,
                 )
 
 
 # ============================================================
-# EDITOR (Right Main Area)
+# EDITOR
 # ============================================================
 
 with editor:
