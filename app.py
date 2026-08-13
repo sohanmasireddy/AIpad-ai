@@ -214,39 +214,60 @@ GEMMA_ICON = (
     "</svg>"
 )
 
+MODEL_ICONS = {
+    "nvidia": NVIDIA_ICON,
+    "gpt": GPT_ICON,
+    "gemma": GEMMA_ICON,
+}
+
+# Each button is preceded by an invisible marker span with a unique
+# class (".model-icon-marker-<name>"). The CSS below uses that marker
+# to find the very next button and swap its text for a centered logo.
+# This doesn't depend on any particular Streamlit version's internal
+# class names (like a container's "key" class), just on the marker
+# being a sibling of the button's wrapper div - which has been stable
+# across Streamlit releases - so it should keep working even if you
+# upgrade/downgrade Streamlit.
+_css_rules = []
+for name, icon in MODEL_ICONS.items():
+    _css_rules.append(
+        f"""
+        div[data-testid="stMarkdown"]:has(.model-icon-marker-{name})
+            + div[data-testid="stButton"] button {{
+            position: relative;
+            color: transparent;
+        }}
+        div[data-testid="stMarkdown"]:has(.model-icon-marker-{name})
+            + div[data-testid="stButton"] button p {{
+            display: none;
+        }}
+        div[data-testid="stMarkdown"]:has(.model-icon-marker-{name})
+            + div[data-testid="stButton"] button::before {{
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 22px;
+            height: 22px;
+            background-image: url("{icon}");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }}
+        """
+    )
+
 st.markdown(
     f"""
     <style>
-    .st-key-model_picker div[data-testid="stHorizontalBlock"] {{
-        gap: 0.4rem;
+    .model-icon-marker-nvidia, .model-icon-marker-gpt, .model-icon-marker-gemma {{
+        display: none;
     }}
-    .st-key-model_picker button {{
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding-left: 0.4rem;
-        padding-right: 0.4rem;
+    div[data-testid="stMarkdown"]:has([class^="model-icon-marker-"]) {{
+        display: none;
     }}
-    .st-key-model_picker button::before {{
-        content: "";
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-    }}
-    .st-key-model_picker div[data-testid="column"]:nth-of-type(1) button::before {{
-        background-image: url("{NVIDIA_ICON}");
-    }}
-    .st-key-model_picker div[data-testid="column"]:nth-of-type(2) button::before {{
-        background-image: url("{GPT_ICON}");
-    }}
-    .st-key-model_picker div[data-testid="column"]:nth-of-type(3) button::before {{
-        background-image: url("{GEMMA_ICON}");
-    }}
+    {''.join(_css_rules)}
     </style>
     """,
     unsafe_allow_html=True,
@@ -254,6 +275,11 @@ st.markdown(
 
 def select_model(label):
     st.session_state.model_label = label
+
+def icon_marker(name):
+    """Invisible marker placed right before a button so CSS can find
+    it and swap the button's text for the matching logo."""
+    st.markdown(f'<span class="model-icon-marker-{name}"></span>', unsafe_allow_html=True)
 
 # ============================================================
 # LAYOUT
@@ -276,35 +302,40 @@ with controls:
     # MODEL SELECTOR (3 logo buttons, same combined width as
     # the dropdown it replaces)
     # ========================================================
-    with st.container(key="model_picker"):
-        col1, col2, col3 = st.columns(3, gap="small")
-        with col1:
-            st.button(
-                "Nemotron",
-                key="btn_nemotron",
-                use_container_width=True,
-                type="primary" if st.session_state.model_label == "Nvidia Nemotron 3 Nano" else "secondary",
-                on_click=select_model,
-                args=("Nvidia Nemotron 3 Nano",),
-            )
-        with col2:
-            st.button(
-                "GPT-OSS",
-                key="btn_gptoss",
-                use_container_width=True,
-                type="primary" if st.session_state.model_label == "ChatGPT-OSS" else "secondary",
-                on_click=select_model,
-                args=("ChatGPT-OSS",),
-            )
-        with col3:
-            st.button(
-                "Gemma",
-                key="btn_gemma",
-                use_container_width=True,
-                type="primary" if st.session_state.model_label == "Google Gemma 4" else "secondary",
-                on_click=select_model,
-                args=("Google Gemma 4",),
-            )
+    col1, col2, col3 = st.columns(3, gap="small")
+    with col1:
+        icon_marker("nvidia")
+        st.button(
+            "Nemotron",
+            key="btn_nemotron",
+            use_container_width=True,
+            help="Nvidia Nemotron 3 Nano",
+            type="primary" if st.session_state.model_label == "Nvidia Nemotron 3 Nano" else "secondary",
+            on_click=select_model,
+            args=("Nvidia Nemotron 3 Nano",),
+        )
+    with col2:
+        icon_marker("gpt")
+        st.button(
+            "GPT-OSS",
+            key="btn_gptoss",
+            use_container_width=True,
+            help="ChatGPT-OSS",
+            type="primary" if st.session_state.model_label == "ChatGPT-OSS" else "secondary",
+            on_click=select_model,
+            args=("ChatGPT-OSS",),
+        )
+    with col3:
+        icon_marker("gemma")
+        st.button(
+            "Gemma",
+            key="btn_gemma",
+            use_container_width=True,
+            help="Google Gemma 4",
+            type="primary" if st.session_state.model_label == "Google Gemma 4" else "secondary",
+            on_click=select_model,
+            args=("Google Gemma 4",),
+        )
 
     # ========================================================
     # AI FIX
