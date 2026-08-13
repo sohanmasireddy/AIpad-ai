@@ -179,6 +179,83 @@ def run_ai(prompt, action, title_placeholder=None):
         st.session_state.retry = (prompt, action)
 
 # ============================================================
+# MODEL PICKER CSS (logo buttons)
+# ============================================================
+# Small, hand-drawn SVG marks (not traced official logo art) so each
+# button gets a brand-colored icon without any external image fetch.
+
+NVIDIA_ICON = (
+    "data:image/svg+xml;utf8,"
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+    "<rect width='20' height='20' rx='4' fill='%2376B900'/>"
+    "<path d='M5 8 L10 13 L15 8' stroke='white' stroke-width='2' "
+    "fill='none' stroke-linecap='round' stroke-linejoin='round'/>"
+    "</svg>"
+)
+
+GPT_ICON = (
+    "data:image/svg+xml;utf8,"
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+    "<circle cx='10' cy='10' r='10' fill='%23000000'/>"
+    "<circle cx='10' cy='4' r='2' fill='white'/>"
+    "<circle cx='15.2' cy='7' r='2' fill='white'/>"
+    "<circle cx='15.2' cy='13' r='2' fill='white'/>"
+    "<circle cx='10' cy='16' r='2' fill='white'/>"
+    "<circle cx='4.8' cy='13' r='2' fill='white'/>"
+    "<circle cx='4.8' cy='7' r='2' fill='white'/>"
+    "</svg>"
+)
+
+GEMMA_ICON = (
+    "data:image/svg+xml;utf8,"
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
+    "<path d='M10 0 C10 6 6 10 0 10 C6 10 10 14 10 20 "
+    "C10 14 14 10 20 10 C14 10 10 6 10 0 Z' fill='%234285F4'/>"
+    "</svg>"
+)
+
+st.markdown(
+    f"""
+    <style>
+    .st-key-model_picker div[data-testid="stHorizontalBlock"] {{
+        gap: 0.4rem;
+    }}
+    .st-key-model_picker button {{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }}
+    .st-key-model_picker button::before {{
+        content: "";
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    .st-key-model_picker div[data-testid="column"]:nth-of-type(1) button::before {{
+        background-image: url("{NVIDIA_ICON}");
+    }}
+    .st-key-model_picker div[data-testid="column"]:nth-of-type(2) button::before {{
+        background-image: url("{GPT_ICON}");
+    }}
+    .st-key-model_picker div[data-testid="column"]:nth-of-type(3) button::before {{
+        background-image: url("{GEMMA_ICON}");
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+def select_model(label):
+    st.session_state.model_label = label
+
+# ============================================================
 # LAYOUT
 # ============================================================
 
@@ -196,14 +273,38 @@ with controls:
     title_placeholder.subheader("📝 AIpad")
 
     # ========================================================
-    # MODEL SELECTOR
+    # MODEL SELECTOR (3 logo buttons, same combined width as
+    # the dropdown it replaces)
     # ========================================================
-    st.selectbox(
-        "Model",
-        options=list(MODEL_OPTIONS.keys()),
-        key="model_label",
-        label_visibility="collapsed",
-    )
+    with st.container(key="model_picker"):
+        col1, col2, col3 = st.columns(3, gap="small")
+        with col1:
+            st.button(
+                "Nemotron",
+                key="btn_nemotron",
+                use_container_width=True,
+                type="primary" if st.session_state.model_label == "Nvidia Nemotron 3 Nano" else "secondary",
+                on_click=select_model,
+                args=("Nvidia Nemotron 3 Nano",),
+            )
+        with col2:
+            st.button(
+                "GPT-OSS",
+                key="btn_gptoss",
+                use_container_width=True,
+                type="primary" if st.session_state.model_label == "ChatGPT-OSS" else "secondary",
+                on_click=select_model,
+                args=("ChatGPT-OSS",),
+            )
+        with col3:
+            st.button(
+                "Gemma",
+                key="btn_gemma",
+                use_container_width=True,
+                type="primary" if st.session_state.model_label == "Google Gemma 4" else "secondary",
+                on_click=select_model,
+                args=("Google Gemma 4",),
+            )
 
     # ========================================================
     # AI FIX
