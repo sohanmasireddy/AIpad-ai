@@ -6,7 +6,6 @@ from ollama import Client
 # PAGE SETUP
 # ============================================================
 
-
 st.set_page_config(
     page_title="AIpad",
     page_icon="📝",
@@ -18,10 +17,9 @@ st.set_page_config(
 # CONFIG
 # ============================================================
 
-
 MODEL = "gpt-oss:20b-cloud"
 
-# Path to the logo/image shown in place of the old model dropdown.
+# Path to the logo/image.
 # Keep this file in the same folder as this script.
 LOGO_PATH = "e9da5025-e172-441d-9f06-8dfa797da9b0.png"
 
@@ -43,7 +41,6 @@ SYSTEM_PROMPT = (
 # SESSION STATE
 # ============================================================
 
-
 defaults = {
     "note": "",
     "panel": None,
@@ -62,7 +59,6 @@ for key, value in defaults.items():
 # ============================================================
 # OLLAMA
 # ============================================================
-
 
 if "ollama_api_key" not in st.secrets:
     st.error("`ollama_api_key` was not found in Streamlit secrets.")
@@ -89,25 +85,22 @@ ai = get_ai_client(OLLAMA_API_KEY)
 # AI
 # ============================================================
 
-
 def strip_preamble(text):
     """Remove a leading/trailing conversational line that some models
     add despite instructions, e.g. 'Ok I humanized it.' Only strips
     a line that is clearly its own paragraph (separated by a blank
     line from the real content), so real content is never touched."""
-    text = text.strip()
 
+    text = text.strip()
 
     preamble_starts = (
         "ok ", "okay ", "sure", "here", "certainly", "of course",
         "got it", "done", "this is", "below is", "the following",
     )
 
-
     lines = text.split("\n")
 
-
-    # Leading preamble: first line matches AND is followed by a blank line
+    # Leading preamble
     if (
         len(lines) > 1
         and lines[0].strip().lower().startswith(preamble_starts)
@@ -115,11 +108,11 @@ def strip_preamble(text):
         and lines[1].strip() == ""
     ):
         lines = lines[1:]
+
         while lines and not lines[0].strip():
             lines.pop(0)
 
-
-    # Trailing postamble: last line matches AND is preceded by a blank line
+    # Trailing postamble
     if (
         len(lines) > 1
         and lines[-1].strip().lower().startswith(preamble_starts)
@@ -127,19 +120,18 @@ def strip_preamble(text):
         and lines[-2].strip() == ""
     ):
         lines = lines[:-1]
+
         while lines and not lines[-1].strip():
             lines.pop()
 
-
     text = "\n".join(lines).strip()
 
-
-    # Strip a single wrapping ```...``` fence if the whole response is one
+    # Strip a single wrapping ```...``` fence
     if text.startswith("```") and text.endswith("```"):
         first_newline = text.find("\n")
+
         if first_newline != -1:
             text = text[first_newline + 1:-3].strip()
-
 
     return text
 
@@ -160,13 +152,13 @@ def ask_ai(prompt):
         stream=True,
     )
 
-
     result = ""
+
     for chunk in response:
         content = chunk.get("message", {}).get("content", "")
+
         if content:
             result += content
-
 
     return strip_preamble(result)
 
@@ -177,14 +169,13 @@ def run_ai(prompt, action, title_placeholder=None):
             with title_placeholder.container():
                 with st.spinner("📝 AIpad"):
                     result = ask_ai(prompt)
+
             title_placeholder.subheader("📝 AIpad")
         else:
             result = ask_ai(prompt)
 
-
         if not result.strip():
             raise RuntimeError("The AI returned an empty response.")
-
 
         if action == "generate":
             if st.session_state.note.strip():
@@ -194,14 +185,11 @@ def run_ai(prompt, action, title_placeholder=None):
         else:
             st.session_state.note = result
 
-
         st.session_state.panel = None
         st.session_state.error = None
         st.session_state.retry = None
 
-
         st.rerun()
-
 
     except Exception as error:
         st.session_state.error = str(error)
@@ -211,7 +199,6 @@ def run_ai(prompt, action, title_placeholder=None):
 # ============================================================
 # LAYOUT
 # ============================================================
-
 
 controls, editor = st.columns(
     [1, 4],
@@ -223,30 +210,23 @@ controls, editor = st.columns(
 # CONTROLS (Left Sidebar)
 # ============================================================
 
-
 with controls:
+
     title_placeholder = st.empty()
     title_placeholder.subheader("📝 AIpad")
 
 
     # ========================================================
-    # LOGO / IMAGE (replaces the old model dropdown)
-    # ========================================================
-    import os
-
-    if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, use_container_width=True)
-    else:
-        st.caption(f"Place an image at `{LOGO_PATH}` to show it here.")
-
-
-    # ========================================================
     # AI FIX
     # ========================================================
+
     if st.button("✨ AI Fix", use_container_width=True):
+
         note = st.session_state.note.strip()
+
         if not note:
             st.warning("Write something first.")
+
         else:
             run_ai(
                 (
@@ -264,10 +244,14 @@ with controls:
     # ========================================================
     # GENERATE
     # ========================================================
+
     def handle_generate():
+
         prompt = st.session_state.generate_input_box.strip()
+
         if prompt:
             st.session_state.trigger_generate = prompt
+
         st.session_state.generate_input_box = ""
 
 
@@ -281,8 +265,11 @@ with controls:
 
 
     if st.session_state.trigger_generate:
+
         prompt_to_run = st.session_state.trigger_generate
-        st.session_state.trigger_generate = None  # Reset flag immediately
+
+        st.session_state.trigger_generate = None
+
         run_ai(
             (
                 "Generate the following. "
@@ -298,10 +285,14 @@ with controls:
     # ========================================================
     # REWRITE
     # ========================================================
+
     def handle_rewrite():
+
         prompt = st.session_state.rewrite_input_box.strip()
+
         if prompt:
             st.session_state.trigger_rewrite = prompt
+
         st.session_state.rewrite_input_box = ""
 
 
@@ -315,13 +306,16 @@ with controls:
 
 
     if st.session_state.trigger_rewrite:
-        instructions = st.session_state.trigger_rewrite
-        st.session_state.trigger_rewrite = None  # Reset flag immediately
-        note = st.session_state.note.strip()
 
+        instructions = st.session_state.trigger_rewrite
+
+        st.session_state.trigger_rewrite = None
+
+        note = st.session_state.note.strip()
 
         if not note:
             st.warning("Write something first.")
+
         else:
             run_ai(
                 (
@@ -337,36 +331,68 @@ with controls:
     # ========================================================
     # CLEAR
     # ========================================================
+
     if st.button("🗑️ Clear", use_container_width=True):
+
         st.session_state.note = ""
         st.session_state.panel = None
 
 
     # ========================================================
+    # LOGO / IMAGE
+    # ========================================================
+    # Image is intentionally UNDER the Clear button.
+
+    import os
+
+    if os.path.exists(LOGO_PATH):
+
+        st.image(
+            LOGO_PATH,
+            use_container_width=True,
+        )
+
+    else:
+
+        st.caption(
+            f"Place an image at `{LOGO_PATH}` to show it here."
+        )
+
+
+    # ========================================================
     # ERROR PANEL
     # ========================================================
-    if st.session_state.error:
-        st.divider()
-        st.error("AI request failed.")
 
+    if st.session_state.error:
+
+        st.divider()
+
+        st.error("AI request failed.")
 
         with st.expander("Details"):
             st.code(st.session_state.error)
 
-
         if st.session_state.retry:
+
             if st.button("🔄 Retry", use_container_width=True):
+
                 prompt, action = st.session_state.retry
+
                 st.session_state.error = None
-                run_ai(prompt, action, title_placeholder)
+
+                run_ai(
+                    prompt,
+                    action,
+                    title_placeholder,
+                )
 
 
 # ============================================================
 # EDITOR (Right Main Area)
 # ============================================================
 
-
 with editor:
+
     st.text_area(
         "Your note",
         height=330,
