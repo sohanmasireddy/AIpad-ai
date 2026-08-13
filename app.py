@@ -23,7 +23,7 @@ MODEL = "gpt-oss:20b-cloud"
 
 # Path to the logo/image shown in place of the old model dropdown.
 # Keep this file in the same folder as this script.
-LOGO_PATH = "logo.png"
+LOGO_PATH = "e9da5025-e172-441d-9f06-8dfa797da9b0.png"
 
 
 SYSTEM_PROMPT = (
