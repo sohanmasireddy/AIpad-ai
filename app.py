@@ -210,10 +210,7 @@ with controls:
     # TITLE
     # ========================================================
 
-   title_left, title_center, title_right = st.columns([1, 3, 1])
-
-with title_center:
-    st.subheader("📝 AIpad")
+    st.subheader("AIpad")
 
 
     # ========================================================
