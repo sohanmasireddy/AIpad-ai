@@ -210,7 +210,7 @@ with controls:
     # TITLE
     # ========================================================
 
-    st.subheader("AI.Pad Notepad")
+    st.subheader("AIPad Notepad")
 
 
     # ========================================================
