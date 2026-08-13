@@ -22,8 +22,7 @@ st.set_page_config(
 MODEL = "gpt-oss:20b-cloud"
 
 # Path to the logo/image shown in place of the old model dropdown.
-# Drop your image at this path (e.g. by uploading it into the same
-# folder as this script) and it will render automatically.
+# Keep this file in the same folder as this script.
 LOGO_PATH = "logo.png"
 
 
