@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 MODEL = "gpt-oss:20b-cloud"
-LOGO_PATH = "e9da5025-e172-441d-9f06-8dfa797da9b0.png"
+LOGO_PATH = "welcome-modal-header.png"
 
 SYSTEM_PROMPT = (
     "You are a text/code processing engine embedded in an app. "
